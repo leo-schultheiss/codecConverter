@@ -1,5 +1,4 @@
 import os
-
 import ffmpeg
 
 
@@ -24,7 +23,11 @@ def getCodec(path: str):
 
 
 def convertH265ToH264(path: str):
-	pass
+	stream = ffmpeg.input('\"' + path + '\"')
+	out_path = '\"' + path.replace('mp4', 'h264.mp4') + '\"'
+	# todo fix this call vvvv
+	stream = ffmpeg.output(stream, out_path, format='yuv420p', vcodec='libx264', acodec='copy')
+	ffmpeg.run(stream)
 
 
 if __name__ == "__main__":
@@ -34,4 +37,9 @@ if __name__ == "__main__":
 		if getExtension(f) != 'mp4':
 			continue
 		codec = getCodec(f)
+		if codec == 'hevc':
+			print('converting ' + f)
+			convertH265ToH264(f)
+		else:
+			print('skipping ' + f + ", codec: " + codec)
 
