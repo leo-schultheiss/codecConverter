@@ -61,7 +61,7 @@ if __name__ == "__main__":
 			output_files.append(output)
 			converted_files.append(f)
 	# delete old files and rename new ones
-	if input('remove %i files? [y/N]: ' % len(converted_files)) == 'y':
+	if input('remove %i files and rename new files? [y/N]: ' % len(converted_files)) == 'y':
 		for c in converted_files:
 			print('removing ' + c)
 			os.remove(c)
