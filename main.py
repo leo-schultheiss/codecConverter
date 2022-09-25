@@ -3,7 +3,7 @@ import sys
 import ffmpeg
 
 converted_tag = '_CONVERTED'
-video_br = 18
+video_br = 23
 audio_br = 320
 
 
@@ -51,9 +51,13 @@ def convertCodecs(path: str, a_codec: str, v_codec: str):
 	# video codec
 	command += '-c:v '
 	if v_codec != 'h264':
+		# h264 encoder
 		command += 'libx264 '
+		# bitrate
 		command += '-crf %i' % video_br
+		# codec format or smth
 		command += ' -vf format=yuv420p '
+		# less deblocking or smth
 		command += '-tune film '
 	else:
 		command += 'copy '
