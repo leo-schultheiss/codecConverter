@@ -11,7 +11,8 @@ def getFiles(path: str):
 	files = []
 	for root, _, fs in os.walk(path):
 		for file in fs:
-			files.append(os.path.join(root, file))
+			if not file.__contains__(converted_tag):
+				files.append(os.path.join(root, file))
 	files.sort()
 	return files
 
@@ -68,10 +69,10 @@ def convertCodecs(path: str, a_codec: str, v_codec: str):
 if __name__ == "__main__":
 	# input
 	p = input("folder to convert codecs in:\n")
-	br = input('video bitrate , integer (0(lossless)-51(max compression), 18 default: ')
+	br = input('video bitrate , integer (0(lossless)-51(max compression), %i default: ' % video_br)
 	if br != '':
 		video_br = int(br)
-	br = input('audio bitrate, integer, 320kb/s default: ')
+	br = input('audio bitrate, integer, %ikb/s default: ' % audio_br)
 	if br != '':
 		audio_br = int(br)
 
