@@ -3,6 +3,8 @@ import sys
 import ffmpeg
 
 converted_tag = '_CONVERTED'
+video_br = 18
+audio_br = 320
 
 
 def getFiles(path: str):
@@ -10,6 +12,7 @@ def getFiles(path: str):
 	for root, _, fs in os.walk(path):
 		for file in fs:
 			files.append(os.path.join(root, file))
+	files.sort()
 	return files
 
 
@@ -29,15 +32,30 @@ def getCodecs(path: str) -> [str, str]:
 
 def convertCodecs(path: str, a_codec: str, v_codec: str):
 	out_path = path.replace('.mp4', converted_tag + '.mp4')
-	command = 'ffmpeg -y -i \"' + path + '\" -map 0 '
+	command = 'ffmpeg -i \"' + path + '\" '
+	# override
+	command += '-y '
+	# copy all streams
+	command += '-map 0 '
+	# copy subtitle streams
+	command += '-c:s copy '
+	# address audio stream
+	command += '-c:a '
+	# audio codec
 	if a_codec != 'aac':
-		command += '-c:a aac -ab 320K '
+		command += 'aac '
+		command += '-ab %iK  ' % audio_br
 	else:
-		command += '-c:a copy '
+		command += 'copy '
+	# video codec
+	command += '-c:v '
 	if v_codec != 'h264':
-		command += '-c:v libx264 -crf 23 -vf format=yuv420p '
+		command += 'libx264 '
+		command += '-crf %i' % video_br
+		command += ' -vf format=yuv420p '
+		command += '-tune film '
 	else:
-		command += '-c:v copy '
+		command += 'copy '
 	command += '\"' + out_path + '\"'
 	print(command)
 	return_code = os.system(command)
@@ -48,7 +66,16 @@ def convertCodecs(path: str, a_codec: str, v_codec: str):
 
 
 if __name__ == "__main__":
+	# input
 	p = input("folder to convert codecs in:\n")
+	br = input('video bitrate , integer (0(lossless)-51(max compression), 18 default: ')
+	if br != '':
+		video_br = int(br)
+	br = input('audio bitrate, integer, 320kb/s default: ')
+	if br != '':
+		audio_br = int(br)
+
+	# main program
 	paths = getFiles(p)
 	converted_files = []
 	output_files = []
