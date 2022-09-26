@@ -4,9 +4,9 @@ import sys
 import ffmpeg
 
 converted_tag = '_CONVERTED'
+use_cuda = True
 video_br = 25
 audio_br = 320
-use_cuda = True
 
 
 def getFiles(path: str):
@@ -60,10 +60,10 @@ def convertCodecs(path: str, a_codec: str, v_codec: str):
 		if use_cuda:
 			# cuda encoder
 			command += 'h264_nvenc '
-			# format
-			command += '-vf scale_cuda=format=yuv420p '
 			# bitrate
 			command += '-cq:v %i ' % video_br
+			# format
+			command += '-vf scale_cuda=format=yuv420p '
 		else:
 			# ffmpeg native h264 encoder
 			command += 'libx264 '
@@ -71,8 +71,6 @@ def convertCodecs(path: str, a_codec: str, v_codec: str):
 			command += '-crf %i' % video_br
 			# codec format or smth
 			command += ' -vf format=yuv420p '
-			# less deblocking or smth
-			command += '-tune film '
 	else:
 		command += 'copy '
 	command += '\"' + out_path + '\"'
@@ -87,15 +85,15 @@ def convertCodecs(path: str, a_codec: str, v_codec: str):
 if __name__ == "__main__":
 	# input
 	p = input("folder to convert codecs in:\n")
-	inp = input('video bitrate , integer (0(lossless)-51(max compression), default %i: ' % video_br)
+	inp = input('cuda hw accel, y/N, default %s:' % str(use_cuda))
+	if inp != '':
+		cuda = inp == 'y'
+	inp = input('video bitrate, integer 0(lossless)-51(max compression), default %i: ' % video_br)
 	if inp != '':
 		video_br = int(inp)
 	inp = input('audio bitrate, integer, default %ikb/s: ' % audio_br)
 	if inp != '':
 		audio_br = int(inp)
-	inp = input('cuda hw accel, y/N, default %i: ' % use_cuda)
-	if inp != '':
-		cuda = inp == 'y'
 
 	# main program
 	paths = getFiles(p)
