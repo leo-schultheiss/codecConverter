@@ -93,10 +93,14 @@ if __name__ == "__main__":
 			output_files.append(output)
 			converted_files.append(f)
 	# delete old files and rename new ones
-	if input('remove %i files and rename new files? [y/N]: ' % len(converted_files)) == 'y':
+	converted_num = len(converted_files)
+	if converted_num > 0 and (input('remove %i files and rename new files? [y/N]: ' % converted_num) == 'y'):
 		for c in converted_files:
 			print('removing ' + c)
-			os.remove(c)
+			try:
+				os.remove(c)
+			except FileNotFoundError:
+				print('file already removed')
 		for o in output_files:
 			new_name = o.replace(converted_tag, '')
 			print('renaming ' + o + ' to ' + new_name)
