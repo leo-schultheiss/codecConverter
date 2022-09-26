@@ -1,10 +1,12 @@
 import os
 import sys
+
 import ffmpeg
 
 converted_tag = '_CONVERTED'
-video_br = 23
+video_br = 25
 audio_br = 320
+use_cuda = True
 
 
 def getFiles(path: str):
@@ -33,7 +35,11 @@ def getCodecs(path: str) -> [str, str]:
 
 def convertCodecs(path: str, a_codec: str, v_codec: str):
 	out_path = path.replace('.mp4', converted_tag + '.mp4')
-	command = 'ffmpeg -i \"' + path + '\" '
+	command = 'ffmpeg '
+	if use_cuda:
+		command += '-hwaccel cuda -hwaccel_output_format cuda '
+	command += '-stats '
+	command += '-i \"' + path + '\" '
 	# override
 	command += '-y '
 	# copy all streams
@@ -51,14 +57,22 @@ def convertCodecs(path: str, a_codec: str, v_codec: str):
 	# video codec
 	command += '-c:v '
 	if v_codec != 'h264':
-		# h264 encoder
-		command += 'libx264 '
-		# bitrate
-		command += '-crf %i' % video_br
-		# codec format or smth
-		command += ' -vf format=yuv420p '
-		# less deblocking or smth
-		command += '-tune film '
+		if use_cuda:
+			# cuda encoder
+			command += 'h264_nvenc '
+			# format
+			command += '-vf scale_cuda=format=yuv420p '
+			# bitrate
+			command += '-cq:v %i ' % video_br
+		else:
+			# ffmpeg native h264 encoder
+			command += 'libx264 '
+			# bitrate
+			command += '-crf %i' % video_br
+			# codec format or smth
+			command += ' -vf format=yuv420p '
+			# less deblocking or smth
+			command += '-tune film '
 	else:
 		command += 'copy '
 	command += '\"' + out_path + '\"'
@@ -73,12 +87,15 @@ def convertCodecs(path: str, a_codec: str, v_codec: str):
 if __name__ == "__main__":
 	# input
 	p = input("folder to convert codecs in:\n")
-	br = input('video bitrate , integer (0(lossless)-51(max compression), %i default: ' % video_br)
-	if br != '':
-		video_br = int(br)
-	br = input('audio bitrate, integer, %ikb/s default: ' % audio_br)
-	if br != '':
-		audio_br = int(br)
+	inp = input('video bitrate , integer (0(lossless)-51(max compression), default %i: ' % video_br)
+	if inp != '':
+		video_br = int(inp)
+	inp = input('audio bitrate, integer, default %ikb/s: ' % audio_br)
+	if inp != '':
+		audio_br = int(inp)
+	inp = input('cuda hw accel, y/N, default %i: ' % use_cuda)
+	if inp != '':
+		cuda = inp == 'y'
 
 	# main program
 	paths = getFiles(p)
