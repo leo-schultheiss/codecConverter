@@ -4,7 +4,7 @@ import sys
 import ffmpeg
 
 converted_tag = '_CONVERTED'
-use_cuda = True
+use_cuda = False
 video_br = 25
 audio_br = 320
 
@@ -97,7 +97,7 @@ if __name__ == "__main__":
 
 	# main program
 	paths = getFiles(p)
-	converted_files = []
+	input_files = []
 	output_files = []
 	for f in paths:
 		audio_codec, video_codec = getCodecs(f)
@@ -106,11 +106,15 @@ if __name__ == "__main__":
 			print('converting codecs on ' + f)
 			output = convertCodecs(f, audio_codec, video_codec)
 			output_files.append(output)
-			converted_files.append(f)
+			input_files.append(f)
+	for file in output_files:
+		out_size = os.path.getsize(file)
+		in_size = os.path.getsize(file.replace(converted_tag, ''))
+		print(file + ' size delta is ' + str((out_size - in_size) / 1000_000) + 'MB')
 	# delete old files and rename new ones
-	converted_num = len(converted_files)
-	if converted_num > 0 and (input('remove %i files and rename new files? [y/N]: ' % converted_num) == 'y'):
-		for c in converted_files:
+	output_num = len(input_files)
+	if output_num > 0 and (input('remove %i files and rename new files? [y/N]: ' % output_num) == 'y'):
+		for c in input_files:
 			print('removing ' + c)
 			try:
 				os.remove(c)
