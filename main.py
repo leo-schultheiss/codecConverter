@@ -135,6 +135,6 @@ if __name__ == "__main__":
 			output_files.append(output)
 			input_files.append(f)
 	printDelta(output_files)
-	if input('remove %i files and rename new files? [y/N]: ' % output_num) == 'y':
+	if input('remove %i files and rename new files? [y/N]: ' % len(output_files)) == 'y':
 		removeOldFiles(input_files)
 		removeConvertedTag(output_files)
