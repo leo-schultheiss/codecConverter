@@ -7,6 +7,10 @@ converted_tag = '_CONVERTED'
 use_cuda = False
 video_br = 25
 audio_br = 320
+# todo test av1 and vp9 working
+supported_video_codecs = ['h264', 'av1', 'vp9']
+# todo test eac3, flac, ogg
+supported_audio_codecs = ['aac', 'eac3', 'flac', 'ogg']
 
 
 def getFiles(path: str):
@@ -49,14 +53,14 @@ def convertCodecs(path: str, a_codec: str, v_codec: str):
 	# address audio stream
 	command += '-c:a '
 	# audio codec
-	if a_codec != 'aac':
+	if not supported_audio_codecs.__contains__(a_codec):
 		command += 'aac '
 		command += '-ab %iK  ' % audio_br
 	else:
 		command += 'copy '
 	# video codec
 	command += '-c:v '
-	if v_codec != 'h264':
+	if not supported_video_codecs.__contains__(v_codec):
 		if use_cuda:
 			# cuda encoder
 			command += 'h264_nvenc '
