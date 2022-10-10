@@ -25,7 +25,7 @@ def getFiles(path: str):
 
 def getExtension(path: str):
 	split = path.split('.')
-	return split[len(split) - 1]
+	return '.' + split[len(split) - 1]
 
 
 def getCodecs(path: str) -> [str, str]:
@@ -38,7 +38,7 @@ def getCodecs(path: str) -> [str, str]:
 
 
 def convertCodecs(path: str, a_codec: str, v_codec: str):
-	out_path = path.replace('.mp4', converted_tag + '.mp4')
+	out_path = path.replace(getExtension(path), converted_tag + getExtension(path))
 	command = 'ffmpeg '
 	if use_cuda:
 		command += '-hwaccel cuda -hwaccel_output_format cuda '
@@ -86,6 +86,29 @@ def convertCodecs(path: str, a_codec: str, v_codec: str):
 	return out_path
 
 
+def printDelta(out_fs):
+	for file in out_fs:
+		out_size = os.path.getsize(file)
+		in_size = os.path.getsize(file.replace(converted_tag, ''))
+		print(file + ' size delta is ' + str((out_size - in_size) / 1000_000) + 'MB')
+
+
+def removeOldFiles(in_fs):
+	for c in in_fs:
+		print('removing ' + c)
+		try:
+			os.remove(c)
+		except FileNotFoundError:
+			print('file already removed')
+
+
+def removeConvertedTag(out_fs):
+	for o in out_fs:
+		new_name = o.replace(converted_tag, '')
+		print('renaming ' + o + ' to ' + new_name)
+		os.rename(o, new_name)
+
+
 if __name__ == "__main__":
 	# input
 	p = input("folder to convert codecs in:\n")
@@ -111,20 +134,7 @@ if __name__ == "__main__":
 			output = convertCodecs(f, audio_codec, video_codec)
 			output_files.append(output)
 			input_files.append(f)
-	for file in output_files:
-		out_size = os.path.getsize(file)
-		in_size = os.path.getsize(file.replace(converted_tag, ''))
-		print(file + ' size delta is ' + str((out_size - in_size) / 1000_000) + 'MB')
-	# delete old files and rename new ones
-	output_num = len(input_files)
-	if output_num > 0 and (input('remove %i files and rename new files? [y/N]: ' % output_num) == 'y'):
-		for c in input_files:
-			print('removing ' + c)
-			try:
-				os.remove(c)
-			except FileNotFoundError:
-				print('file already removed')
-		for o in output_files:
-			new_name = o.replace(converted_tag, '')
-			print('renaming ' + o + ' to ' + new_name)
-			os.rename(o, new_name)
+	printDelta(output_files)
+	if input('remove %i files and rename new files? [y/N]: ' % output_num) == 'y':
+		removeOldFiles(input_files)
+		removeConvertedTag(output_files)
