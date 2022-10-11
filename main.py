@@ -7,10 +7,9 @@ converted_tag = '_CONVERTED'
 use_cuda = False
 video_br = 25
 audio_br = 320
-# todo test av1 and vp9 working
-supported_video_codecs = ['h264', 'av1', 'vp9']
-# todo test eac3, flac, ogg
-supported_audio_codecs = ['aac', 'eac3', 'flac', 'ogg']
+supported_video_codecs = ['h264']
+# todo test eac3, flac
+supported_audio_codecs = ['aac', 'eac3', 'flac']
 
 
 def getFiles(path: str):
@@ -73,7 +72,7 @@ def convertCodecs(path: str, a_codec: str, v_codec: str):
 			command += 'libx264 '
 			# bitrate
 			command += '-crf %i' % video_br
-			# codec format or smth
+			# video format or smth
 			command += ' -vf format=yuv420p '
 	else:
 		command += 'copy '
@@ -135,6 +134,6 @@ if __name__ == "__main__":
 			output_files.append(output)
 			input_files.append(f)
 	printDelta(output_files)
-	if input('remove %i files and rename new files? [y/N]: ' % len(output_files)) == 'y':
+	if input('remove %i files and rename new files? [y/N]: ' % len(input_files)) == 'y':
 		removeOldFiles(input_files)
 		removeConvertedTag(output_files)
