@@ -5,9 +5,10 @@ import ffmpeg
 
 converted_tag = '_CONVERTED'
 use_cuda = False
+convert_audio = False
 video_br = 25
 audio_br = 320
-supported_video_codecs = ['h264']
+supported_video_codecs = ['h264', 'av1']
 # todo test eac3, flac
 supported_audio_codecs = ['aac', 'eac3', 'flac']
 
@@ -85,14 +86,14 @@ def convertCodecs(path: str, a_codec: str, v_codec: str):
 	return out_path
 
 
-def printDelta(out_fs):
+def print_file_size_delta(out_fs):
 	for file in out_fs:
 		out_size = os.path.getsize(file)
 		in_size = os.path.getsize(file.replace(converted_tag, ''))
 		print(file + ' size delta is ' + str((out_size - in_size) / 1000_000) + 'MB')
 
 
-def removeOldFiles(in_fs):
+def remove_source_files(in_fs):
 	for c in in_fs:
 		print('removing ' + c)
 		try:
@@ -101,7 +102,7 @@ def removeOldFiles(in_fs):
 			print('file already removed')
 
 
-def removeConvertedTag(out_fs):
+def remove_converted_tags(out_fs):
 	for o in out_fs:
 		new_name = o.replace(converted_tag, '')
 		print('renaming ' + o + ' to ' + new_name)
@@ -111,31 +112,39 @@ def removeConvertedTag(out_fs):
 if __name__ == "__main__":
 	p = input("folder to convert codecs in:\n")
 	paths = getFiles(p)
+	inp = input('should audio get converted to aac, if not already in a compatible codec, y/N, default %s:\n' % str(
+		convert_audio))
+	if inp.lower() == 'y':
+		convert_audio = True
+	print(convert_audio)
 	input_files = []
 	output_files = []
 	# filter out files with
 	for f in paths:
 		audio_codec, video_codec = getCodecs(f)
-		if not supported_video_codecs.__contains__(video_codec) or not supported_audio_codecs.__contains__(audio_codec):
+		if not supported_video_codecs.__contains__(video_codec) or \
+				(convert_audio and not supported_audio_codecs.__contains__(audio_codec)):
 			print(f + ' will be converted: video codec ' + video_codec + " audio codec " + audio_codec)
 			input_files.append([f, audio_codec, video_codec])
 	if input('start converting? [y/n]').lower() != 'y':
 		exit(0)
 	# parameters
 	inp = input('cuda hw accel, y/N, default %s:' % str(use_cuda))
-	if inp != '':
-		cuda = inp == 'y'
+	use_cuda = inp.lower() == 'y'
+	print(use_cuda)
 	inp = input('video bitrate, integer 0(lossless)-51(max compression), default %i: ' % video_br)
-	if inp != '':
+	if inp.lower() == 'y':
 		video_br = int(inp)
+	print(video_br)
 	inp = input('audio bitrate, integer, default %ikb/s: ' % audio_br)
-	if inp != '':
+	if inp.lower() == 'y':
 		audio_br = int(inp)
+	print(audio_br)
 	for f, audio_codec, video_codec in input_files:
 		print('converting codecs on ' + f)
 		output = convertCodecs(f, audio_codec, video_codec)
 		output_files.append(output)
-	printDelta(output_files)
+	print_file_size_delta(output_files)
 	if len(output_files) > 0 and input('remove %i files and rename new files? [y/N]: ' % len(input_files)) == 'y':
-		removeOldFiles(input_files)
-		removeConvertedTag(output_files)
+		remove_source_files(input_files)
+		remove_converted_tags(output_files)
