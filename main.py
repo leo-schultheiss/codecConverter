@@ -109,8 +109,19 @@ def removeConvertedTag(out_fs):
 
 
 if __name__ == "__main__":
-	# input
 	p = input("folder to convert codecs in:\n")
+	paths = getFiles(p)
+	input_files = []
+	output_files = []
+	# filter out files with
+	for f in paths:
+		audio_codec, video_codec = getCodecs(f)
+		if not supported_video_codecs.__contains__(video_codec) or not supported_audio_codecs.__contains__(audio_codec):
+			print(f + ' will be converted: video codec ' + video_codec + " audio codec " + audio_codec)
+			input_files.append([f, audio_codec, video_codec])
+	if input('start converting? [y/n]').lower() != 'y':
+		exit(0)
+	# parameters
 	inp = input('cuda hw accel, y/N, default %s:' % str(use_cuda))
 	if inp != '':
 		cuda = inp == 'y'
@@ -120,19 +131,6 @@ if __name__ == "__main__":
 	inp = input('audio bitrate, integer, default %ikb/s: ' % audio_br)
 	if inp != '':
 		audio_br = int(inp)
-
-	# main program
-	paths = getFiles(p)
-	input_files = []
-	output_files = []
-	# filter out files with
-	for f in paths:
-		audio_codec, video_codec = getCodecs(f)
-		if supported_video_codecs.__contains__(video_codec) or supported_audio_codecs.__contains__(audio_codec):
-			print(f + ' will be converted: video codec ' + video_codec + " audio codec " + audio_codec)
-			input_files.append([f, audio_codec, video_codec])
-	if input('start converting? [y/n]').lower() != 'y':
-		exit(0)
 	for f, audio_codec, video_codec in input_files:
 		print('converting codecs on ' + f)
 		output = convertCodecs(f, audio_codec, video_codec)
