@@ -125,15 +125,17 @@ if __name__ == "__main__":
 	paths = getFiles(p)
 	input_files = []
 	output_files = []
+	# filter out files with
 	for f in paths:
 		audio_codec, video_codec = getCodecs(f)
-		# convert codecs if necessary
-		if video_codec != 'h264' or audio_codec != 'aac':
-			print('converting codecs on ' + f)
-			output = convertCodecs(f, audio_codec, video_codec)
-			output_files.append(output)
-			input_files.append(f)
+		if supported_video_codecs.__contains__(video_codec) or supported_audio_codecs.__contains__(audio_codec):
+			print(f + ' will be converted: video codec ' + video_codec + " audio codec " + audio_codec)
+			input_files.append([f, audio_codec, video_codec])
+	for f, audio_codec, video_codec in input_files:
+		print('converting codecs on ' + f)
+		output = convertCodecs(f, audio_codec, video_codec)
+		output_files.append(output)
 	printDelta(output_files)
-	if input('remove %i files and rename new files? [y/N]: ' % len(input_files)) == 'y':
+	if len(output_files) > 0 and input('remove %i files and rename new files? [y/N]: ' % len(input_files)) == 'y':
 		removeOldFiles(input_files)
 		removeConvertedTag(output_files)
