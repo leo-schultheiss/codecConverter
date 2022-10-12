@@ -131,6 +131,8 @@ if __name__ == "__main__":
 		if supported_video_codecs.__contains__(video_codec) or supported_audio_codecs.__contains__(audio_codec):
 			print(f + ' will be converted: video codec ' + video_codec + " audio codec " + audio_codec)
 			input_files.append([f, audio_codec, video_codec])
+	if input('start converting? [y/n]').lower() != 'y':
+		exit(0)
 	for f, audio_codec, video_codec in input_files:
 		print('converting codecs on ' + f)
 		output = convertCodecs(f, audio_codec, video_codec)
