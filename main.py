@@ -96,7 +96,7 @@ def print_file_size_delta(out_fs):
 
 
 def remove_source_files(in_fs):
-	for c, _ in in_fs:
+	for c, _, _ in in_fs:
 		print('removing ' + c)
 		try:
 			os.remove(c)
