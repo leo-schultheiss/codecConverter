@@ -13,23 +13,26 @@ supported_video_codecs = ['h264', 'av1']
 supported_audio_codecs = ['aac', 'eac3', 'flac']
 
 
-def getFiles(path: str):
+def get_video_files(path: str):
+	video_formats = ['.mp4', '.mkv']
 	files = []
 	for root, _, fs in os.walk(path):
 		for file in fs:
-			if not file.__contains__(converted_tag):
+			if not file.__contains__(converted_tag) and video_formats.__contains__(get_extension(file)):
 				files.append(os.path.join(root, file))
 	files.sort()
 	return files
 
 
-def getExtension(path: str):
+def get_extension(path: str):
 	split = path.split('.')
 	return '.' + split[len(split) - 1]
 
 
 def getCodecs(path: str) -> [str, str]:
 	streams = ffmpeg.probe(path)["streams"]
+	if len(streams) < 2:
+		print('file does not appear to contain an audio stream: ' + path)
 	video_stream = streams[0]
 	audio_stream = streams[1]
 	a_codec = audio_stream['codec_name']
@@ -38,7 +41,7 @@ def getCodecs(path: str) -> [str, str]:
 
 
 def convertCodecs(path: str, a_codec: str, v_codec: str):
-	out_path = path.replace(getExtension(path), converted_tag + getExtension(path))
+	out_path = path.replace(get_extension(path), converted_tag + get_extension(path))
 	command = 'ffmpeg '
 	if use_cuda:
 		command += '-hwaccel cuda -hwaccel_output_format cuda '
@@ -94,7 +97,7 @@ def print_file_size_delta(out_fs):
 
 
 def remove_source_files(in_fs):
-	for c in in_fs:
+	for c, _ in in_fs:
 		print('removing ' + c)
 		try:
 			os.remove(c)
@@ -109,14 +112,27 @@ def remove_converted_tags(out_fs):
 		os.rename(o, new_name)
 
 
+def get_parameters():
+	global use_cuda, video_br, audio_br
+	inp = input('cuda hw accel, y/N, default %s:' % str(use_cuda))
+	use_cuda = inp.lower() == 'y'
+	inp = input('video bitrate, integer 0(lossless)-51(max compression), default %i: ' % video_br)
+	if inp.lower().isnumeric():
+		video_br = int(inp)
+	inp = input('audio bitrate, integer, default %ikb/s: ' % audio_br)
+	if inp.lower().isnumeric():
+		audio_br = int(inp)
+
+
 if __name__ == "__main__":
 	p = input("folder to convert codecs in:\n")
-	paths = getFiles(p)
-	inp = input('should audio get converted to aac, if not already in a compatible codec, y/N, default %s:\n' % str(
-		convert_audio))
-	if inp.lower() == 'y':
+	paths = get_video_files(p)
+	if len(paths) == 0:
+		print("no video files detected")
+		exit(0)
+	if input('should audio get converted to aac, if not already in a compatible codec, y/N, default %s:\n' % str(
+			convert_audio)).lower() == 'y':
 		convert_audio = True
-	print(convert_audio)
 	input_files = []
 	output_files = []
 	# filter out files with
@@ -126,20 +142,10 @@ if __name__ == "__main__":
 				(convert_audio and not supported_audio_codecs.__contains__(audio_codec)):
 			print(f + ' will be converted: video codec ' + video_codec + " audio codec " + audio_codec)
 			input_files.append([f, audio_codec, video_codec])
-	if input('start converting? [y/n]').lower() != 'y':
+	if len(input_files) == 0 or input('start converting? [y/n]').lower() != 'y':
 		exit(0)
-	# parameters
-	inp = input('cuda hw accel, y/N, default %s:' % str(use_cuda))
-	use_cuda = inp.lower() == 'y'
-	print(use_cuda)
-	inp = input('video bitrate, integer 0(lossless)-51(max compression), default %i: ' % video_br)
-	if inp.lower() == 'y':
-		video_br = int(inp)
-	print(video_br)
-	inp = input('audio bitrate, integer, default %ikb/s: ' % audio_br)
-	if inp.lower() == 'y':
-		audio_br = int(inp)
-	print(audio_br)
+	# get parameters from user
+	get_parameters()
 	for f, audio_codec, video_codec in input_files:
 		print('converting codecs on ' + f)
 		output = convertCodecs(f, audio_codec, video_codec)
