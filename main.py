@@ -5,7 +5,6 @@ import ffmpeg
 
 converted_tag = '_CONVERTED'
 use_cuda = False
-convert_audio = False
 video_br = 25
 audio_br = 320
 supported_video_codecs = ['h264', 'av1']
@@ -125,21 +124,17 @@ def get_parameters():
 
 
 if __name__ == "__main__":
-	p = input("folder to convert codecs in:\n")
+	p = input("folder to convert codecs in: ")
 	paths = get_video_files(p)
 	if len(paths) == 0:
 		print("no video files detected")
 		exit(0)
-	if input('should audio get converted to aac, if not already in a compatible codec, y/N, default %s:\n' % str(
-			convert_audio)).lower() == 'y':
-		convert_audio = True
 	input_files = []
 	output_files = []
 	# filter out files with
 	for f in paths:
 		audio_codec, video_codec = getCodecs(f)
-		if not supported_video_codecs.__contains__(video_codec) or \
-				(convert_audio and not supported_audio_codecs.__contains__(audio_codec)):
+		if not supported_video_codecs.__contains__(video_codec) or not supported_audio_codecs.__contains__(audio_codec):
 			print(f + ' will be converted: video codec ' + video_codec + " audio codec " + audio_codec)
 			input_files.append([f, audio_codec, video_codec])
 	if len(input_files) == 0 or input('start converting? [y/n]').lower() != 'y':
