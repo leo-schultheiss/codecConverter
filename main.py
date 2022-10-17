@@ -8,8 +8,7 @@ use_cuda = False
 video_br = 25
 audio_br = 320
 supported_video_codecs = ['h264', 'av1']
-# todo test eac3, flac
-supported_audio_codecs = ['aac', 'eac3', 'flac']
+supported_audio_codecs = ['aac', 'ac3', 'flac']
 
 
 def get_video_files(path: str):
