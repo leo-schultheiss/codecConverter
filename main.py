@@ -8,7 +8,7 @@ use_cuda = False
 video_br = 25
 audio_br = 320
 supported_video_codecs = ['h264', 'av1']
-supported_audio_codecs = ['aac', 'ac3', 'flac']
+supported_audio_codecs = ['aac', 'eac3', 'flac']
 
 
 def get_video_files(path: str):
@@ -67,14 +67,14 @@ def convertCodecs(path: str, a_codec: str, v_codec: str):
 			command += 'h264_nvenc '
 			# bitrate
 			command += '-cq:v %i ' % video_br
-			# format
+			# convert to 8 bit
 			command += '-vf scale_cuda=format=yuv420p '
 		else:
 			# ffmpeg native h264 encoder
 			command += 'libx264 '
 			# bitrate
 			command += '-crf %i' % video_br
-			# video format or smth
+			# convert to 8 bit
 			command += ' -vf format=yuv420p '
 	else:
 		command += 'copy '
