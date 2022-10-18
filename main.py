@@ -137,6 +137,7 @@ if __name__ == "__main__":
 			print(f + ' will be converted: video codec ' + video_codec + " audio codec " + audio_codec)
 			input_files.append([f, audio_codec, video_codec])
 	if len(input_files) == 0 or input('start converting? [y/n]').lower() != 'y':
+		print("no files to be converted")
 		exit(0)
 	# get parameters from user
 	get_parameters()
