@@ -27,7 +27,7 @@ def get_extension(path: str):
 	return '.' + split[len(split) - 1]
 
 
-def getCodecs(path: str) -> [str, str]:
+def get_codecs(path: str) -> [str, str]:
 	streams = ffmpeg.probe(path)["streams"]
 	if len(streams) < 2:
 		print('file does not appear to contain an audio stream: ' + path)
@@ -38,44 +38,28 @@ def getCodecs(path: str) -> [str, str]:
 	return [a_codec, v_codec]
 
 
-def convertCodecs(path: str, a_codec: str, v_codec: str):
+def convert_codecs(path: str, a_codec: str, v_codec: str):
 	out_path = path.replace(get_extension(path), converted_tag + get_extension(path))
 	command = 'ffmpeg '
 	if use_cuda:
 		command += '-hwaccel cuda -hwaccel_output_format cuda '
-	command += '-stats '
-	command += '-i \"' + path + '\" '
-	# override
-	command += '-y '
-	# copy all streams
-	command += '-map 0 '
-	# copy subtitle streams
-	command += '-c:s copy '
-	# address audio stream
-	command += '-c:a '
+	# -y: override -map 0: select all streams -c:s copy subtitles -c:a select audio codec
+	command += '-stats -i \"' + path + '\" -y -map 0 -c:s copy -c:a '
 	# audio codec
 	if not supported_audio_codecs.__contains__(a_codec):
-		command += 'aac '
-		command += '-ab %iK  ' % audio_br
+		# convert to aac with fixed bitrate
+		command += 'aac -ab %iK  ' % audio_br
 	else:
 		command += 'copy '
 	# video codec
 	command += '-c:v '
 	if not supported_video_codecs.__contains__(v_codec):
 		if use_cuda:
-			# cuda encoder
-			command += 'h264_nvenc '
-			# bitrate
-			command += '-cq:v %i ' % video_br
-			# convert to 8 bit
-			command += '-vf scale_cuda=format=yuv420p '
+			# h264_nvenc: cuda encoder -cq:v video bitrate -vf: convert to 8 bit
+			command += 'h264_nvenc -cq:v %i -vf scale_cuda=format=yuv420p ' % video_br
 		else:
-			# ffmpeg native h264 encoder
-			command += 'libx264 '
-			# bitrate
-			command += '-crf %i' % video_br
-			# convert to 8 bit
-			command += ' -vf format=yuv420p '
+			# encode to h264 encoder -crf: bitrate -vf: convert to 8 bit
+			command += 'libx264 -crf %i -vf format=yuv420p ' % video_br
 	else:
 		command += 'copy '
 	command += '\"' + out_path + '\"'
@@ -122,6 +106,15 @@ def get_parameters():
 		audio_br = int(inp)
 
 
+def search_unconverted_videos():
+	global f, audio_codec, video_codec
+	for f in paths:
+		audio_codec, video_codec = get_codecs(f)
+		if not supported_video_codecs.__contains__(video_codec) or not supported_audio_codecs.__contains__(audio_codec):
+			print(f + ' will be converted: video codec ' + video_codec + " audio codec " + audio_codec)
+			input_files.append([f, audio_codec, video_codec])
+
+
 if __name__ == "__main__":
 	p = input("folder to convert codecs in: ")
 	paths = get_video_files(p)
@@ -131,11 +124,7 @@ if __name__ == "__main__":
 	input_files = []
 	output_files = []
 	# filter out files with
-	for f in paths:
-		audio_codec, video_codec = getCodecs(f)
-		if not supported_video_codecs.__contains__(video_codec) or not supported_audio_codecs.__contains__(audio_codec):
-			print(f + ' will be converted: video codec ' + video_codec + " audio codec " + audio_codec)
-			input_files.append([f, audio_codec, video_codec])
+	search_unconverted_videos()
 	if len(input_files) == 0 or input('start converting? [y/n]').lower() != 'y':
 		print("no files to be converted")
 		exit(0)
@@ -143,7 +132,7 @@ if __name__ == "__main__":
 	get_parameters()
 	for f, audio_codec, video_codec in input_files:
 		print('converting codecs on ' + f)
-		output = convertCodecs(f, audio_codec, video_codec)
+		output = convert_codecs(f, audio_codec, video_codec)
 		output_files.append(output)
 	print_file_size_delta(output_files)
 	if len(output_files) > 0 and input('remove %i files and rename new files? [y/N]: ' % len(input_files)) == 'y':
