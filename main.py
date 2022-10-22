@@ -5,7 +5,7 @@ import ffmpeg
 
 converted_tag = '_CONVERTED'
 use_cuda = False
-video_br = 25
+video_br = 21
 audio_br = 640
 supported_video_codecs = ['h264', 'av1']
 supported_audio_codecs = ['aac', 'eac3', 'flac']
