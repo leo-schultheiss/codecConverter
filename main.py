@@ -6,7 +6,7 @@ import ffmpeg
 converted_tag = '_CONVERTED'
 use_cuda = False
 video_br = 25
-audio_br = 320
+audio_br = 640
 supported_video_codecs = ['h264', 'av1']
 supported_audio_codecs = ['aac', 'eac3', 'flac']
 
@@ -30,7 +30,8 @@ def get_extension(path: str):
 def get_codecs(path: str) -> [str, str]:
 	streams = ffmpeg.probe(path)["streams"]
 	if len(streams) < 2:
-		print('file does not appear to contain an audio stream: ' + path)
+		print('file does not appear to contain an audio stream: ' + path, file=sys.stderr)
+		exit(0)
 	video_stream = streams[0]
 	audio_stream = streams[1]
 	a_codec = audio_stream['codec_name']
