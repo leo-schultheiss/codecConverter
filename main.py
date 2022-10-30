@@ -116,6 +116,7 @@ def search_unconverted_videos():
 			input_files.append([f, audio_codec, video_codec])
 
 
+# TODO: CHANGE FROM IN PLACE TO OUT OF PLACE
 if __name__ == "__main__":
 	p = input("folder to convert codecs in: ")
 	paths = get_video_files(p)
