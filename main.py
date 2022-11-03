@@ -9,10 +9,10 @@ video_br = 21
 audio_br = 320
 supported_video_codecs = ['h264', 'av1']
 supported_audio_codecs = ['aac', 'eac3', 'flac']
+video_formats = ['.mp4', '.mkv', '.avi']
 
 
 def get_video_files(path: str):
-	video_formats = ['.mp4', '.mkv']
 	files = []
 	for root, _, fs in os.walk(path):
 		for file in fs:
@@ -23,11 +23,13 @@ def get_video_files(path: str):
 
 
 def get_extension(path: str):
+	"""returns: file extension including '.'"""
 	split = path.split('.')
 	return '.' + split[len(split) - 1]
 
 
 def get_codecs(path: str) -> [str, str]:
+	# todo enable detection of different streams with different codecs (mainly audio)
 	streams = ffmpeg.probe(path)["streams"]
 	if len(streams) < 2:
 		print('file does not appear to contain an audio stream: ' + path, file=sys.stderr)
@@ -116,10 +118,12 @@ def search_unconverted_videos():
 			input_files.append([f, audio_codec, video_codec])
 
 
-# TODO: CHANGE FROM IN PLACE TO OUT OF PLACE
 if __name__ == "__main__":
-	p = input("folder to convert codecs in: ")
-	paths = get_video_files(p)
+	if len(sys.argv) > 0 and os.path.exists(sys.argv[0]):
+		in_path = sys.argv[0]
+	else:
+		in_path = input("folder to convert codecs in: ")
+	paths = get_video_files(in_path)
 	if len(paths) == 0:
 		print("no video files detected")
 		exit(0)
