@@ -81,18 +81,17 @@ def print_file_size_delta(out_fs):
 		print(file + ' size delta is ' + str((out_size - in_size) / 1000_000) + 'MB')
 
 
-def remove_source_files(in_fs):
-	for c, _, _ in in_fs:
-		print('removing ' + c)
+def cleanup(out_fs):
+	for o in out_fs:
+		if not os.path.exists(out_fs):
+			# file has already been renamed/removed
+			continue
+		new_name = o.replace(converted_tag, '')
+		print('removing ' + new_name)
 		try:
-			os.remove(c)
+			os.remove(new_name)
 		except FileNotFoundError:
 			print('file already removed')
-
-
-def remove_converted_tags(out_fs):
-	for o in out_fs:
-		new_name = o.replace(converted_tag, '')
 		print('renaming ' + o + ' to ' + new_name)
 		os.rename(o, new_name)
 
@@ -109,9 +108,9 @@ def get_parameters():
 		audio_br = int(inp)
 
 
-def search_unconverted_videos():
-	global f, audio_codec, video_codec
-	for f in paths:
+def search_unconverted_videos(in_fs):
+	global audio_codec, video_codec
+	for f in in_fs:
 		audio_codec, video_codec = get_codecs(f)
 		if not supported_video_codecs.__contains__(video_codec) or not supported_audio_codecs.__contains__(audio_codec):
 			print(f + ' will be converted: video codec ' + video_codec + " audio codec " + audio_codec)
@@ -119,8 +118,8 @@ def search_unconverted_videos():
 
 
 if __name__ == "__main__":
-	if len(sys.argv) > 0 and os.path.exists(sys.argv[0]):
-		in_path = sys.argv[0]
+	if len(sys.argv) > 1:
+		in_path = sys.argv[1]
 	else:
 		in_path = input("folder to convert codecs in: ")
 	paths = get_video_files(in_path)
@@ -129,18 +128,16 @@ if __name__ == "__main__":
 		exit(0)
 	input_files = []
 	output_files = []
-	# filter out files with
-	search_unconverted_videos()
+	search_unconverted_videos(paths)
 	if len(input_files) == 0 or input('start converting? [y/n]').lower() != 'y':
 		print("no files to be converted")
 		exit(0)
 	# get parameters from user
 	get_parameters()
-	for f, audio_codec, video_codec in input_files:
-		print('converting codecs on ' + f)
-		output = convert_codecs(f, audio_codec, video_codec)
+	for file, audio_codec, video_codec in input_files:
+		print('converting codecs on ' + file)
+		output = convert_codecs(file, audio_codec, video_codec)
 		output_files.append(output)
 	print_file_size_delta(output_files)
 	if len(output_files) > 0 and input('remove %i files and rename new files? [y/N]: ' % len(input_files)) == 'y':
-		remove_source_files(input_files)
-		remove_converted_tags(output_files)
+		cleanup(output_files)
