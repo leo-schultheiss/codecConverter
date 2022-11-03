@@ -15,9 +15,9 @@ video_formats = ['.mp4', '.mkv', '.avi']
 def get_video_files(path: str):
 	files = []
 	for root, _, fs in os.walk(path):
-		for file in fs:
-			if not file.__contains__(converted_tag) and video_formats.__contains__(get_extension(file)):
-				files.append(os.path.join(root, file))
+		for f in fs:
+			if not f.__contains__(converted_tag) and video_formats.__contains__(get_extension(f)):
+				files.append(os.path.join(root, f))
 	files.sort()
 	return files
 
@@ -75,25 +75,25 @@ def convert_codecs(path: str, a_codec: str, v_codec: str):
 
 
 def print_file_size_delta(out_fs):
-	for file in out_fs:
-		out_size = os.path.getsize(file)
-		in_size = os.path.getsize(file.replace(converted_tag, ''))
-		print(file + ' size delta is ' + str((out_size - in_size) / 1000_000) + 'MB')
+	for f in out_fs:
+		out_size = os.path.getsize(f)
+		in_size = os.path.getsize(f.replace(converted_tag, ''))
+		print(f + ' size delta is ' + str((out_size - in_size) / 1000_000) + 'MB')
 
 
 def cleanup(out_fs):
-	for o in out_fs:
-		if not os.path.exists(out_fs):
+	for f in out_fs:
+		new_name = f.replace(converted_tag, '')
+		if not os.path.exists(new_name):
 			# file has already been renamed/removed
 			continue
-		new_name = o.replace(converted_tag, '')
 		print('removing ' + new_name)
 		try:
 			os.remove(new_name)
 		except FileNotFoundError:
 			print('file already removed')
-		print('renaming ' + o + ' to ' + new_name)
-		os.rename(o, new_name)
+		print('renaming ' + f + ' to ' + new_name)
+		os.rename(f, new_name)
 
 
 def get_parameters():
