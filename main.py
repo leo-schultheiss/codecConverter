@@ -1,9 +1,11 @@
 import os
 import sys
+import argparse
 
 import ffmpeg
 
 converted_tag = '_CONVERTED'
+convert_path = ''
 use_cuda = False
 video_br = 21
 audio_br = 320
@@ -42,6 +44,7 @@ def get_codecs(path: str) -> [str, str]:
 
 
 def convert_codecs(path: str, a_codec: str, v_codec: str):
+	global use_cuda, video_br, audio_br
 	out_path = path.replace(get_extension(path), converted_tag + get_extension(path))
 	command = 'ffmpeg '
 	if use_cuda:
@@ -96,18 +99,6 @@ def cleanup(out_fs):
 		os.rename(f, new_name)
 
 
-def get_parameters():
-	global use_cuda, video_br, audio_br
-	inp = input('cuda hw accel, y/N, default %s:' % str(use_cuda))
-	use_cuda = inp.lower() == 'y'
-	inp = input('video bitrate, integer 0(lossless)-51(max compression), default %i: ' % video_br)
-	if inp.lower().isnumeric():
-		video_br = int(inp)
-	inp = input('audio bitrate, integer, default %ikb/s: ' % audio_br)
-	if inp.lower().isnumeric():
-		audio_br = int(inp)
-
-
 def search_unconverted_videos(in_fs):
 	global audio_codec, video_codec
 	for f in in_fs:
@@ -117,12 +108,35 @@ def search_unconverted_videos(in_fs):
 			input_files.append([f, audio_codec, video_codec])
 
 
+def parse_arguments():
+	global convert_path, use_cuda, audio_br, video_br
+	parser = argparse.ArgumentParser(
+		prog='codecConverter',
+		description='Converts video files in a given folder to more compatible codecs',
+	)
+	parser.add_argument('folder')
+	parser.add_argument("-c", "--cuda", type=bool,
+						help="use nvidia hardware acceleration. Requires cuda to be installed. Default %s" % str(
+							use_cuda))
+	parser.add_argument("-v", "--video-br", type=int, choices=range(0, 52), metavar="0-51",
+						help="video bitrate, integer 0 (lossless) -51 (max compression), default %i" % video_br)
+	parser.add_argument("-a", "--audio-br", type=int, help="audio bitrate. Default %ikb/s:" % audio_br)
+	args = parser.parse_args()
+	convert_path = args.folder
+	if args.cuda:
+		use_cuda = args.cuda
+		print(f"Nvidia hardware acceleration set to {use_cuda}")
+	if args.video_br:
+		video_br = args.video_br
+		print(f"video bitrate set to {video_br}")
+	if args.audio_br:
+		audio_br = args.audio_br
+		print(f"audio bitrate set to {audio_br}kb/s")
+
+
 if __name__ == "__main__":
-	if len(sys.argv) > 1:
-		in_path = sys.argv[1]
-	else:
-		in_path = input("folder to convert codecs in: ")
-	paths = get_video_files(in_path)
+	parse_arguments()
+	paths = get_video_files(convert_path)
 	if len(paths) == 0:
 		print("no video files detected")
 		exit(0)
@@ -132,8 +146,6 @@ if __name__ == "__main__":
 	if len(input_files) == 0 or input('start converting? [y/n]').lower() != 'y':
 		print("no files to be converted")
 		exit(0)
-	# get parameters from user
-	get_parameters()
 	for file, audio_codec, video_codec in input_files:
 		print('converting codecs on ' + file)
 		output = convert_codecs(file, audio_codec, video_codec)
