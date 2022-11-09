@@ -6,7 +6,8 @@ import ffmpeg
 
 converted_tag = '_CONVERTED'
 convert_path = ''
-use_cuda = False
+cuda_acceleration = False
+force_conversion = False
 video_br = 21
 audio_br = 320
 supported_video_codecs = ['h264', 'av1']
@@ -44,10 +45,10 @@ def get_codecs(path: str) -> [str, str]:
 
 
 def convert_codecs(path: str, a_codec: str, v_codec: str):
-	global use_cuda, video_br, audio_br
+	global cuda_acceleration, video_br, audio_br
 	out_path = path.replace(get_extension(path), converted_tag + get_extension(path))
 	command = 'ffmpeg '
-	if use_cuda:
+	if cuda_acceleration:
 		command += '-hwaccel cuda -hwaccel_output_format cuda '
 	# -y: override -map 0: select all streams -c:s copy subtitles -c:a select audio codec
 	command += '-stats -i \"' + path + '\" -y -map 0 -c:s copy -c:a '
@@ -60,7 +61,7 @@ def convert_codecs(path: str, a_codec: str, v_codec: str):
 	# video codec
 	command += '-c:v '
 	if not supported_video_codecs.__contains__(v_codec):
-		if use_cuda:
+		if cuda_acceleration:
 			# h264_nvenc: cuda encoder -cq:v video bitrate -vf: convert to 8 bit
 			command += 'h264_nvenc -cq:v %i -vf scale_cuda=format=yuv420p ' % video_br
 		else:
@@ -109,42 +110,44 @@ def search_unconverted_videos(in_fs):
 
 
 def parse_arguments():
-	global convert_path, use_cuda, audio_br, video_br
+	global convert_path, cuda_acceleration, audio_br, video_br, force_conversion
 	parser = argparse.ArgumentParser(
 		prog='codecConverter',
-		description='Converts video files in a given folder to more compatible codecs',
-	)
+		description='Converts video files in a given folder to more compatible codecs', )
 	parser.add_argument('folder')
 	parser.add_argument("-c", "--cuda", type=bool,
-						help="use nvidia hardware acceleration. Requires cuda to be installed. Default %s" % str(
-							use_cuda))
+						help=f"use nvidia hardware acceleration. Requires cuda to be installed. Default: {cuda_acceleration}")
 	parser.add_argument("-v", "--video-br", type=int, choices=range(0, 52), metavar="0-51",
-						help="video bitrate, integer 0 (lossless) -51 (max compression), default %i" % video_br)
-	parser.add_argument("-a", "--audio-br", type=int, help="audio bitrate. Default %ikb/s:" % audio_br)
+						help=f"video bitrate, integer 0 (lossless) -51 (max compression). Default: {video_br}")
+	parser.add_argument("-a", "--audio-br", type=int, help=f"audio bitrate. Default: {audio_br}kb/s:")
+	parser.add_argument("-f", '-y', "--force", action='store_true')
 	args = parser.parse_args()
 	convert_path = args.folder
 	if args.cuda:
-		use_cuda = args.cuda
-		print(f"Nvidia hardware acceleration set to {use_cuda}")
+		cuda_acceleration = args.cuda
+		print(f"Nvidia hardware acceleration set to {cuda_acceleration}")
 	if args.video_br:
 		video_br = args.video_br
 		print(f"video bitrate set to {video_br}")
 	if args.audio_br:
 		audio_br = args.audio_br
 		print(f"audio bitrate set to {audio_br}kb/s")
+	force_conversion = args.force
 
 
 if __name__ == "__main__":
 	parse_arguments()
 	paths = get_video_files(convert_path)
 	if len(paths) == 0:
-		print("no video files detected")
+		print(f"no video files with extesions {video_formats} detected")
 		exit(0)
 	input_files = []
 	output_files = []
 	search_unconverted_videos(paths)
-	if len(input_files) == 0 or input('start converting? [y/n]').lower() != 'y':
+	if len(input_files) == 0:
 		print("no files to be converted")
+		exit(0)
+	if not force_conversion and input('start converting? [y/n]').lower() != 'y':
 		exit(0)
 	for file, audio_codec, video_codec in input_files:
 		print('converting codecs on ' + file)
