@@ -120,7 +120,7 @@ def parse_arguments():
 	parser.add_argument("-v", "--video-br", type=int, choices=range(0, 52), metavar="0-51",
 						help=f"video bitrate, integer 0 (lossless) -51 (max compression). Default: {video_br}")
 	parser.add_argument("-a", "--audio-br", type=int, help=f"audio bitrate. Default: {audio_br}kb/s:")
-	parser.add_argument("-f", '-y', "--force", action='store_true')
+	parser.add_argument("-f", '-y', "--force", action='store_true', help="Disable interaction")
 	args = parser.parse_args()
 	convert_path = args.folder
 	if args.cuda:
