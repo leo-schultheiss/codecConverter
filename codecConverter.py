@@ -154,5 +154,5 @@ if __name__ == "__main__":
 		output = convert_codecs(file, audio_codec, video_codec)
 		output_files.append(output)
 	print_file_size_delta(output_files)
-	if len(output_files) > 0 and input('remove %i files and rename new files? [y/N]: ' % len(input_files)) == 'y':
+	if force_conversion or input('remove %i files and rename new files? [y/N]: ' % len(input_files)) == 'y':
 		cleanup(output_files)
