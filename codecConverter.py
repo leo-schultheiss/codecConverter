@@ -105,7 +105,13 @@ def search_unconverted_videos(in_fs):
 	for f in in_fs:
 		audio_codec, video_codec = get_codecs(f)
 		if not supported_video_codecs.__contains__(video_codec) or not supported_audio_codecs.__contains__(audio_codec):
-			print(f + ' will be converted: video codec ' + video_codec + " audio codec " + audio_codec)
+			red_start = '\033[91m'
+			format_end = '\033[0m'
+			video_string = video_codec if supported_video_codecs.__contains__(
+				video_codec) else f"{red_start}{video_codec}{format_end}"
+			audio_string = audio_codec if supported_audio_codecs.__contains__(
+				audio_codec) else f"{red_start}{audio_codec}{format_end}"
+			print(f"{f} will be converted, video: {video_string} audio: {audio_string}")
 			input_files.append([f, audio_codec, video_codec])
 
 
