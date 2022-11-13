@@ -1,6 +1,6 @@
+import argparse
 import os
 import sys
-import argparse
 
 import ffmpeg
 
@@ -15,6 +15,38 @@ supported_audio_codecs = ['aac', 'eac3', 'flac']
 video_formats = ['.mp4', '.mkv', '.avi']
 
 
+def parse_arguments():
+	global convert_path, cuda_acceleration, audio_br, video_br, force_conversion
+	parser = argparse.ArgumentParser(
+		prog='codecConverter',
+		description='Converts video files in a given folder to more compatible codecs', )
+	parser.add_argument('folder')
+	parser.add_argument("-c", "--cuda", type=bool,
+						help=f"use nvidia hardware acceleration. Requires cuda to be installed. Default: {cuda_acceleration}")
+	parser.add_argument("-v", "--video-br", type=int, choices=range(0, 52), metavar="0-51",
+						help=f"video bitrate, integer 0 (lossless) -51 (max compression). Default: {video_br}")
+	parser.add_argument("-a", "--audio-br", type=int, help=f"audio bitrate. Default: {audio_br}kb/s:")
+	parser.add_argument("-f", '-y', "--force", action='store_true', help="Disable interaction")
+	args = parser.parse_args()
+	convert_path = args.folder
+	if args.cuda:
+		cuda_acceleration = args.cuda
+		print(f"Nvidia hardware acceleration set to {cuda_acceleration}")
+	if args.video_br:
+		video_br = args.video_br
+		print(f"video bitrate set to {video_br}")
+	if args.audio_br:
+		audio_br = args.audio_br
+		print(f"audio bitrate set to {audio_br}kb/s")
+	force_conversion = args.force
+
+
+def get_extension(path: str):
+	"""returns: file extension including '.'"""
+	split = path.split('.')
+	return '.' + split[len(split) - 1]
+
+
 def get_video_files(path: str):
 	files = []
 	for root, _, fs in os.walk(path):
@@ -23,12 +55,6 @@ def get_video_files(path: str):
 				files.append(os.path.join(root, f))
 	files.sort()
 	return files
-
-
-def get_extension(path: str):
-	"""returns: file extension including '.'"""
-	split = path.split('.')
-	return '.' + split[len(split) - 1]
 
 
 def get_codecs(path: str) -> [str, str]:
@@ -42,6 +68,23 @@ def get_codecs(path: str) -> [str, str]:
 	a_codec = audio_stream['codec_name']
 	v_codec = video_stream['codec_name']
 	return [a_codec, v_codec]
+
+
+def search_unconverted_videos(in_paths) -> [[str, str, str]]:
+	global audio_codec, video_codec
+	filtered_list = []
+	for p in in_paths:
+		audio_codec, video_codec = get_codecs(p)
+		if not supported_video_codecs.__contains__(video_codec) or not supported_audio_codecs.__contains__(audio_codec):
+			red_start = '\033[91m'
+			format_end = '\033[0m'
+			video_string = video_codec if supported_video_codecs.__contains__(
+				video_codec) else f"{red_start}{video_codec}{format_end}"
+			audio_string = audio_codec if supported_audio_codecs.__contains__(
+				audio_codec) else f"{red_start}{audio_codec}{format_end}"
+			print(f"{p} will be converted, video: {video_string} audio: {audio_string}")
+			filtered_list.append([p, audio_codec, video_codec])
+	return filtered_list
 
 
 def convert_codecs(path: str, a_codec: str, v_codec: str):
@@ -82,7 +125,8 @@ def print_file_size_delta(out_fs):
 	for f in out_fs:
 		out_size = os.path.getsize(f)
 		in_size = os.path.getsize(f.replace(converted_tag, ''))
-		print(f + ' size delta is ' + str((out_size - in_size) / 1000_000) + 'MB')
+		delta = out_size - in_size
+		print(f'{f} size delta is {round(delta / 1000_000)}MB | {round(100 * delta / in_size)}%')
 
 
 def cleanup(out_fs):
@@ -100,56 +144,14 @@ def cleanup(out_fs):
 		os.rename(f, new_name)
 
 
-def search_unconverted_videos(in_fs):
-	global audio_codec, video_codec
-	for f in in_fs:
-		audio_codec, video_codec = get_codecs(f)
-		if not supported_video_codecs.__contains__(video_codec) or not supported_audio_codecs.__contains__(audio_codec):
-			red_start = '\033[91m'
-			format_end = '\033[0m'
-			video_string = video_codec if supported_video_codecs.__contains__(
-				video_codec) else f"{red_start}{video_codec}{format_end}"
-			audio_string = audio_codec if supported_audio_codecs.__contains__(
-				audio_codec) else f"{red_start}{audio_codec}{format_end}"
-			print(f"{f} will be converted, video: {video_string} audio: {audio_string}")
-			input_files.append([f, audio_codec, video_codec])
-
-
-def parse_arguments():
-	global convert_path, cuda_acceleration, audio_br, video_br, force_conversion
-	parser = argparse.ArgumentParser(
-		prog='codecConverter',
-		description='Converts video files in a given folder to more compatible codecs', )
-	parser.add_argument('folder')
-	parser.add_argument("-c", "--cuda", type=bool,
-						help=f"use nvidia hardware acceleration. Requires cuda to be installed. Default: {cuda_acceleration}")
-	parser.add_argument("-v", "--video-br", type=int, choices=range(0, 52), metavar="0-51",
-						help=f"video bitrate, integer 0 (lossless) -51 (max compression). Default: {video_br}")
-	parser.add_argument("-a", "--audio-br", type=int, help=f"audio bitrate. Default: {audio_br}kb/s:")
-	parser.add_argument("-f", '-y', "--force", action='store_true', help="Disable interaction")
-	args = parser.parse_args()
-	convert_path = args.folder
-	if args.cuda:
-		cuda_acceleration = args.cuda
-		print(f"Nvidia hardware acceleration set to {cuda_acceleration}")
-	if args.video_br:
-		video_br = args.video_br
-		print(f"video bitrate set to {video_br}")
-	if args.audio_br:
-		audio_br = args.audio_br
-		print(f"audio bitrate set to {audio_br}kb/s")
-	force_conversion = args.force
-
-
 if __name__ == "__main__":
 	parse_arguments()
 	paths = get_video_files(convert_path)
 	if len(paths) == 0:
 		print(f"no video files with extesions {video_formats} detected")
 		exit(0)
-	input_files = []
+	input_files = search_unconverted_videos(paths)
 	output_files = []
-	search_unconverted_videos(paths)
 	if len(input_files) == 0:
 		print("no files to be converted")
 		exit(0)
@@ -160,5 +162,5 @@ if __name__ == "__main__":
 		output = convert_codecs(file, audio_codec, video_codec)
 		output_files.append(output)
 	print_file_size_delta(output_files)
-	if force_conversion or input('remove %i files and rename new files? [y/N]: ' % len(input_files)) == 'y':
+	if force_conversion or input(f'remove {len(input_files)} files and rename new files? [y/N]:') == 'y':
 		cleanup(output_files)
