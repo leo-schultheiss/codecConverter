@@ -123,10 +123,13 @@ def convert_codecs(path: str, a_codec: str, v_codec: str):
 
 def print_file_size_delta(out_fs):
 	for f in out_fs:
-		out_size = os.path.getsize(f)
-		in_size = os.path.getsize(f.replace(converted_tag, ''))
-		delta = out_size - in_size
-		print(f'{f} size delta is {round(delta / 1000_000)}MB | {round(100 * delta / in_size)}%')
+		try:
+			out_size = os.path.getsize(f)
+			in_size = os.path.getsize(f.replace(converted_tag, ''))
+			delta = out_size - in_size
+			print(f'{f} size delta is {round(delta / 1000_000)}MB | {round(100 * delta / in_size)}%')
+		except FileNotFoundError:
+			print(f"file not found")
 
 
 def cleanup(out_fs):
@@ -138,10 +141,10 @@ def cleanup(out_fs):
 		print('removing ' + new_name)
 		try:
 			os.remove(new_name)
+			print('renaming ' + f + ' to ' + new_name)
+			os.rename(f, new_name)
 		except FileNotFoundError:
 			print('file already removed')
-		print('renaming ' + f + ' to ' + new_name)
-		os.rename(f, new_name)
 
 
 if __name__ == "__main__":
